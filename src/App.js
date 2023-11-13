@@ -32,8 +32,9 @@ function App() {
 
 	const handleRadioInputChange = (e) => {
 		const { name, value } = e.target;
+		const invertedValue = 1 - parseFloat(value);
 		setRangeValues((previos) => {
-			return { ...previos, [name]: value };
+			return { ...previos, [name]: name === "zoom" ? invertedValue : value };
 		});
 		renderImage(imageFile);
 	};
@@ -105,7 +106,7 @@ function App() {
 			const y = Math.floor(pixelNumber / height);
 			const distanceCenter = Math.sqrt((centerX - x) ** 2 + (centerY - y) ** 2);
 			if (distanceCenter > radius) {
-				const alpha = 1 - Math.min(1, (distanceCenter - radius));
+				const alpha = 1 - Math.min(1, distanceCenter - radius);
 				imageData[i + 3] = Math.round(alpha * imageData[i + 3]);
 			}
 		}
@@ -131,10 +132,10 @@ function App() {
 					<label htmlFor="zoom">Zoom</label>
 					<input
 						type="range"
-						min={0.1}
-						max={1}
+						min={0}
+						max={0.9}
 						step={0.01}
-						defaultValue={1}
+						defaultValue={0}
 						name="zoom"
 						onChange={handleRadioInputChange}
 					/>
