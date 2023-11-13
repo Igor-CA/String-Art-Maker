@@ -39,15 +39,16 @@ function App() {
 	};
 	const renderImage = (img) => {
 		const croppedImage = cropImage(img);
-		const croppedImageData = croppedImage.data.slice()
+		const croppedImageData = croppedImage.data.slice();
 		const grayScaleImage = applyGrayScaleFilter(croppedImageData);
+		const circularImage = circularCut(grayScaleImage);
 
 		const scannedImageCopy = new ImageData(
 			croppedImage.width,
 			croppedImage.height
 		);
 
-		scannedImageCopy.data.set(grayScaleImage);
+		scannedImageCopy.data.set(circularImage);
 		contextRef.current.putImageData(scannedImageCopy, 0, 0);
 	};
 	const cropImage = (image) => {
@@ -89,6 +90,24 @@ function App() {
 			imageData[i] = grayScale;
 			imageData[i + 1] = grayScale;
 			imageData[i + 2] = grayScale;
+		}
+		return imageData;
+	};
+	const circularCut = (imageData) => {
+		const width = canvasRef.current.width;
+		const height = canvasRef.current.height;
+		const centerX = Math.floor(width / 2);
+		const centerY = Math.floor(height / 2);
+		const radius = width / 2;
+		for (let i = 0; i < imageData.length; i += 4) {
+			const pixelNumber = i / 4;
+			const x = pixelNumber % width;
+			const y = Math.floor(pixelNumber / height);
+			const distanceCenter = Math.sqrt((centerX - x) ** 2 + (centerY - y) ** 2);
+			if (distanceCenter > radius) {
+				const alpha = 1 - Math.min(1, (distanceCenter - radius));
+				imageData[i + 3] = Math.round(alpha * imageData[i + 3]);
+			}
 		}
 		return imageData;
 	};
