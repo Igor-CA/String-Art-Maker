@@ -54,6 +54,9 @@ function App() {
 	};
 	const cropImage = (image) => {
 		const canvas = canvasRef.current;
+		const maxWidth = 672;
+    	const width = Math.min(0.8 * window.innerWidth, maxWidth);
+		canvas.height = canvas.width = width
 
 		const { zoom, x, y } = rangeValues;
 		const imageSize = Math.min(image.width, image.height) * zoom;
@@ -114,17 +117,18 @@ function App() {
 	};
 
 	return (
-		<div className="App">
+		<div className="bg-gray-100 min-h-screen">
+			<label htmlFor="fileInput" className="bg-blue-400 m-2.5 p-2.5 rounded-md text-white font-semibold inline-block">Escolha o arquivo</label>
 			<input
 				type="file"
 				name="fileInput"
 				id="fileInput"
 				onChange={handleFileInputChange}
+				className="hidden"
 			/>
 			<canvas
 				id="imageCanvas"
-				width="400"
-				height="400"
+				className="w-4/5 max-w-2xl aspect-square m-auto my-3"
 				ref={canvasRef}
 			></canvas>
 			{imageFile && (
