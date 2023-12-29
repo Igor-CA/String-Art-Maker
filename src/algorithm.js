@@ -71,7 +71,7 @@ function measureBrightness(imageData, line) {
 	return averageBrithness;
 }
 
-function geneatePinCoodinates(numberOfPoints, canvasSize) {
+export function geneatePinCoodinates(numberOfPoints, canvasSize) {
 	const center = [canvasSize / 2, canvasSize / 2];
 	const coords = [];
 	for (let i = 0; i < numberOfPoints; i++) {

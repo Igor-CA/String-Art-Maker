@@ -1,10 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import LineCanvas from "./LineCanvas";
 import generateStringArt from "./algorithm";
-
-
-
-
+import ResultCanvas from "./resultCanvas";
 
 const LINE_TRANSPARENCY = 0.25;
 const SCREEN_SIZE = 1000;
@@ -14,12 +10,14 @@ function App() {
 	const contextRef = useRef(null);
 	const [rangeValues, setRangeValues] = useState({ zoom: 1, x: 50, y: 50 });
 	const [imageFile, setImageFile] = useState(null);
-	const [numberOfPoints, setNumberOfPoints] = useState(200)
+	const [numberOfPoints, setNumberOfPoints] = useState(250);
+	const [numberOfThreads, setNumberOfThreads] = useState(4000);
+	const [steps, setSteps] = useState();
 	useEffect(() => {
 		const canvas = canvasRef.current;
 		const context = canvas.getContext("2d");
 		contextRef.current = context;
-	},[]);
+	}, []);
 
 	const handleFileInputChange = (event) => {
 		const file = event.target.files[0];
@@ -61,10 +59,6 @@ function App() {
 
 		scannedImageCopy.data.set(circularImage);
 		contextRef.current.putImageData(scannedImageCopy, 0, 0);
-
-		const steps = generateStringArt(scannedImageCopy.data, 5000, 180)
-		console.log(steps)
-
 	};
 	const cropImage = (image) => {
 		const canvas = canvasRef.current;
@@ -126,14 +120,42 @@ function App() {
 		}
 		return imageData;
 	};
-	const handleNumberChange = (e) =>{
-		setNumberOfPoints(e.target.value)
-	}
+
+	const generateArt = async () => {
+		const imageData = contextRef.current.getImageData(
+			0,
+			0,
+			canvasRef.current.width,
+			canvasRef.current.height
+		);
+		const initialTime = new Date()
+		const generatedSteps = await generateStringArt(
+			imageData.data,
+			numberOfThreads,
+			numberOfPoints,
+			SCREEN_SIZE,
+			LINE_TRANSPARENCY
+		);
+		const finalTime = new Date()
+		console.log(`Total time: ${finalTime - initialTime}`)
+		console.log(generatedSteps);
+		setSteps(generatedSteps)
+	};
+	const handlePointsChange = (e) => {
+		setNumberOfPoints(e.target.value);
+	};
+	const handleThreadsChange = (e) => {
+		setNumberOfThreads(e.target.value);
+	};
 
 	return (
 		<div className="bg-gray-100 min-h-screen">
-			<p>{canvasRef.width}</p>
-			<label htmlFor="fileInput" className="bg-blue-400 m-2.5 p-2.5 rounded-md text-white font-semibold inline-block">Escolha o arquivo</label>
+			<label
+				htmlFor="fileInput"
+				className="bg-blue-400 m-2.5 p-2.5 rounded-md text-white font-semibold inline-block"
+			>
+				Escolha o arquivo
+			</label>
 			<input
 				type="file"
 				name="fileInput"
@@ -141,17 +163,34 @@ function App() {
 				onChange={handleFileInputChange}
 				className="hidden"
 			/>
-			<input
-				type="number"
-				className="m-2.5 p-2.5 rounded-md font-semibold inline-block"
-				placeholder="Number of points"
-				defaultValue={100}
-				onChange={(e) => handleNumberChange(e)}
-			/>
-			<LineCanvas points={numberOfPoints}></LineCanvas>
+
+			<label htmlFor="pointsInput">
+				Number of points:
+				<input
+					type="number"
+					className="m-2.5 p-2.5 rounded-md font-semibold inline-block"
+					id="pointsInput"
+					name="pointsInput"
+					defaultValue={250}
+					onChange={(e) => handlePointsChange(e)}
+				/>
+			</label>
+			<label htmlFor="numberOfThreads">
+				Number of threads:
+				<input
+					type="number"
+					id="numberOfThreads"
+					name="numberOfThreads"
+					className="m-2.5 p-2.5 rounded-md font-semibold inline-block"
+					defaultValue={4000}
+					onChange={(e) => handleThreadsChange(e)}
+				/>
+			</label>
 			<canvas
 				id="imageCanvas"
-				className="bg-white w-4/5 max-w-2xl aspect-square m-auto my-3 border-solid border-2 border-indigo-60"
+				className={`bg-white w-4/5 max-w-2xl aspect-square m-auto my-3 border-solid border-2 border-indigo-60 ${
+					imageFile ? "" : "hidden"
+				}`}
 				ref={canvasRef}
 				width={SCREEN_SIZE}
 				height={SCREEN_SIZE}
@@ -186,6 +225,13 @@ function App() {
 						name="y"
 						onChange={handleRadioInputChange}
 					/>
+					<button
+						className="bg-blue-400 m-2.5 p-2.5 rounded-md text-white font-semibold inline-block"
+						onClick={generateArt}
+					>
+						Generate string art
+					</button>
+					{steps && <ResultCanvas steps={steps} points={numberOfPoints}></ResultCanvas>}
 				</>
 			)}
 		</div>
