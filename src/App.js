@@ -1,15 +1,25 @@
 import { useEffect, useRef, useState } from "react";
+import LineCanvas from "./LineCanvas";
+import generateStringArt from "./algorithm";
+
+
+
+
+
+const LINE_TRANSPARENCY = 0.25;
+const SCREEN_SIZE = 1000;
 
 function App() {
 	const canvasRef = useRef(null);
 	const contextRef = useRef(null);
 	const [rangeValues, setRangeValues] = useState({ zoom: 1, x: 50, y: 50 });
 	const [imageFile, setImageFile] = useState(null);
+	const [numberOfPoints, setNumberOfPoints] = useState(200)
 	useEffect(() => {
 		const canvas = canvasRef.current;
 		const context = canvas.getContext("2d");
 		contextRef.current = context;
-	});
+	},[]);
 
 	const handleFileInputChange = (event) => {
 		const file = event.target.files[0];
@@ -51,12 +61,13 @@ function App() {
 
 		scannedImageCopy.data.set(circularImage);
 		contextRef.current.putImageData(scannedImageCopy, 0, 0);
+
+		const steps = generateStringArt(scannedImageCopy.data, 5000, 180)
+		console.log(steps)
+
 	};
 	const cropImage = (image) => {
 		const canvas = canvasRef.current;
-		const maxWidth = 672;
-    	const width = Math.min(0.8 * window.innerWidth, maxWidth);
-		canvas.height = canvas.width = width
 
 		const { zoom, x, y } = rangeValues;
 		const imageSize = Math.min(image.width, image.height) * zoom;
@@ -115,9 +126,13 @@ function App() {
 		}
 		return imageData;
 	};
+	const handleNumberChange = (e) =>{
+		setNumberOfPoints(e.target.value)
+	}
 
 	return (
 		<div className="bg-gray-100 min-h-screen">
+			<p>{canvasRef.width}</p>
 			<label htmlFor="fileInput" className="bg-blue-400 m-2.5 p-2.5 rounded-md text-white font-semibold inline-block">Escolha o arquivo</label>
 			<input
 				type="file"
@@ -126,10 +141,20 @@ function App() {
 				onChange={handleFileInputChange}
 				className="hidden"
 			/>
+			<input
+				type="number"
+				className="m-2.5 p-2.5 rounded-md font-semibold inline-block"
+				placeholder="Number of points"
+				defaultValue={100}
+				onChange={(e) => handleNumberChange(e)}
+			/>
+			<LineCanvas points={numberOfPoints}></LineCanvas>
 			<canvas
 				id="imageCanvas"
-				className="w-4/5 max-w-2xl aspect-square m-auto my-3"
+				className="bg-white w-4/5 max-w-2xl aspect-square m-auto my-3 border-solid border-2 border-indigo-60"
 				ref={canvasRef}
+				width={SCREEN_SIZE}
+				height={SCREEN_SIZE}
 			></canvas>
 			{imageFile && (
 				<>
