@@ -65,7 +65,7 @@ export default function ResultCanvas({ steps, points }) {
 	return (
 		<canvas
 			id="resultCanvas"
-			className="bg-white w-4/5 max-w-2xl aspect-square m-auto my-3 border-solid border-2 border-indigo-60"
+			className="bg-white w-4/5 max-w-2xl aspect-square m-auto my-3"
 			ref={canvasRef}
 			width={SCREEN_SIZE}
 			height={SCREEN_SIZE}

@@ -128,7 +128,7 @@ function App() {
 			canvasRef.current.width,
 			canvasRef.current.height
 		);
-		const initialTime = new Date()
+		const initialTime = new Date();
 		const generatedSteps = await generateStringArt(
 			imageData.data,
 			numberOfThreads,
@@ -136,10 +136,10 @@ function App() {
 			SCREEN_SIZE,
 			LINE_TRANSPARENCY
 		);
-		const finalTime = new Date()
-		console.log(`Total time: ${finalTime - initialTime}`)
+		const finalTime = new Date();
+		console.log(`Total time: ${finalTime - initialTime}`);
 		console.log(generatedSteps);
-		setSteps(generatedSteps)
+		setSteps(generatedSteps);
 	};
 	const handlePointsChange = (e) => {
 		setNumberOfPoints(e.target.value);
@@ -148,47 +148,70 @@ function App() {
 		setNumberOfThreads(e.target.value);
 	};
 
+	//TODO add option to copy exysting code
 	return (
-		<div className="bg-gray-100 min-h-screen">
-			<label
-				htmlFor="fileInput"
-				className="bg-blue-400 m-2.5 p-2.5 rounded-md text-white font-semibold inline-block"
-			>
-				Escolha o arquivo
-			</label>
-			<input
-				type="file"
-				name="fileInput"
-				id="fileInput"
-				onChange={handleFileInputChange}
-				className="hidden"
-			/>
+		<div className="min-h-screen bg-gray-50 p-2">
+			<div className=" bg-gray-200 rounded-md p-3 lg:max-w-screen-md lg:mx-auto drop-shadow-md">
+				<h1 className="text-lg font-bold drop-shadow-sm">
+					String art generator
+				</h1>
+				<p className="mt-2">
+					Select a image to create a string art. <br></br> Select the area of
+					the image you want to use and then click "Generate string art"
+					<br></br> Wait for generate to complete loading. <br></br>
+					<strong>Note:</strong> For best results use close up high contrast
+					pictures. <br></br> If you already have a step by step process you can
+					click in "Use generated steps" and copy your steps to see the results
+				</p>
 
-			<label htmlFor="pointsInput">
-				Number of points:
+				<h2 className="font-bold mt-3">Variables that affects the result</h2>
+				<div className="flex flex-col md:flex-row">
+					<label
+						htmlFor="pointsInput"
+						title="The amount of points in the image increases resoltion but it takes more time to compute"
+					>
+						Number of nails:
+						<input
+							type="number"
+							className="m-2.5 p-2.5 rounded-md font-semibold inline-block"
+							id="pointsInput"
+							name="pointsInput"
+							defaultValue={250}
+							onChange={(e) => handlePointsChange(e)}
+						/>
+					</label>
+					<label
+						htmlFor="numberOfThreads"
+						title="Can make images brighter or darker and also give the images more details. With more lines more it takes more time to compute"
+					>
+						Number of lines:
+						<input
+							type="number"
+							id="numberOfThreads"
+							name="numberOfThreads"
+							className="m-2.5 p-2.5 rounded-md font-semibold inline-block"
+							defaultValue={4000}
+							onChange={(e) => handleThreadsChange(e)}
+						/>
+					</label>
+				</div>
+				<label
+					htmlFor="fileInput"
+					className="bg-blue-400 p-2.5 rounded-md text-white font-semibold inline-block"
+				>
+					Choose the image to start
+				</label>
 				<input
-					type="number"
-					className="m-2.5 p-2.5 rounded-md font-semibold inline-block"
-					id="pointsInput"
-					name="pointsInput"
-					defaultValue={250}
-					onChange={(e) => handlePointsChange(e)}
+					type="file"
+					name="fileInput"
+					id="fileInput"
+					onChange={handleFileInputChange}
+					className="hidden"
 				/>
-			</label>
-			<label htmlFor="numberOfThreads">
-				Number of threads:
-				<input
-					type="number"
-					id="numberOfThreads"
-					name="numberOfThreads"
-					className="m-2.5 p-2.5 rounded-md font-semibold inline-block"
-					defaultValue={4000}
-					onChange={(e) => handleThreadsChange(e)}
-				/>
-			</label>
+			</div>
 			<canvas
 				id="imageCanvas"
-				className={`bg-white w-4/5 max-w-2xl aspect-square m-auto my-3 border-solid border-2 border-indigo-60 ${
+				className={`bg-gray-50 w-4/5 max-w-2xl aspect-square m-auto my-3 ${
 					imageFile ? "" : "hidden"
 				}`}
 				ref={canvasRef}
@@ -196,43 +219,63 @@ function App() {
 				height={SCREEN_SIZE}
 			></canvas>
 			{imageFile && (
-				<>
-					<label htmlFor="zoom">Zoom</label>
-					<input
-						type="range"
-						min={0}
-						max={0.9}
-						step={0.01}
-						defaultValue={0}
-						name="zoom"
-						onChange={handleRadioInputChange}
-					/>
-					<label htmlFor="x">X</label>
-					<input
-						type="range"
-						min={0}
-						max={100}
-						defaultValue={50}
-						name="x"
-						onChange={handleRadioInputChange}
-					/>
-					<label htmlFor="y"></label>Y
-					<input
-						type="range"
-						min={0}
-						max={100}
-						defaultValue={50}
-						name="y"
-						onChange={handleRadioInputChange}
-					/>
+				<div className="bg-gray-50 m-2 p-3 lg:max-w-screen-md lg:mx-auto flex flex-col items-stretch">
+					<div className="flex justify-evenly">
+						<label htmlFor="zoom">
+							Zoom
+							<input
+								type="range"
+								min={0}
+								max={0.9}
+								step={0.01}
+								defaultValue={0}
+								name="zoom"
+								onChange={handleRadioInputChange}
+							/>
+						</label>
+						<label htmlFor="x">
+							X
+							<input
+								type="range"
+								min={0}
+								max={100}
+								defaultValue={50}
+								name="x"
+								onChange={handleRadioInputChange}
+							/>
+						</label>
+						<label htmlFor="y">
+							Y
+							<input
+								type="range"
+								min={0}
+								max={100}
+								defaultValue={50}
+								name="y"
+								onChange={handleRadioInputChange}
+							/>
+						</label>
+					</div>
+
 					<button
-						className="bg-blue-400 m-2.5 p-2.5 rounded-md text-white font-semibold inline-block"
+						className="bg-blue-400 my-2.5 p-2.5 rounded-md text-white font-semibold inline-block"
 						onClick={generateArt}
 					>
 						Generate string art
 					</button>
-					{steps && <ResultCanvas steps={steps} points={numberOfPoints}></ResultCanvas>}
-				</>
+					{steps && (
+						<div className="border-solid border-2 border-indigo-60 p-1 rounded-md bg-white">
+							<ResultCanvas
+								steps={steps}
+								points={numberOfPoints}
+							></ResultCanvas>
+							<p>Step by step process:</p>
+							<textarea value={steps} className="w-full border-solid border-2 border-indigo-60"></textarea>
+							<p>By copying these numbers you can also save it for later so you won't have to generete them again</p>
+							<p>To build your string art you just have to follow the order of the steps above so for exemple in the part "{`${steps[0]}, ${steps[1]}, ${steps[2]}`}" you start from nail/pin {steps[0]}, pass a line from {steps[0]} to steps {steps[1]} and then a line from pin {steps[1]} to pin {steps[2]} and so on</p>
+						</div>
+					)}
+				</div>
 			)}
 		</div>
 	);
