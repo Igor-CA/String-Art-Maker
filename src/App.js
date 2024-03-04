@@ -9,6 +9,8 @@ function App() {
 	const canvasRef = useRef(null);
 	const contextRef = useRef(null);
 	const [rangeValues, setRangeValues] = useState({ zoom: 1, x: 50, y: 50 });
+	const [stepsCopyArea, setStepsCopyArea] = useState(false);
+	const [copyAreaValue, setCopyAreaValue] = useState(null);
 	const [imageFile, setImageFile] = useState(null);
 	const [numberOfPoints, setNumberOfPoints] = useState(250);
 	const [numberOfThreads, setNumberOfThreads] = useState(4000);
@@ -147,8 +149,15 @@ function App() {
 	const handleThreadsChange = (e) => {
 		setNumberOfThreads(e.target.value);
 	};
-
-	//TODO add option to copy exysting code
+	const handleCopyAreaValue = (e) => {
+		const values = e.target.value.split(",").map((value) => value.trim());
+		setCopyAreaValue(values);
+	};
+	//TODO make new error handler -> show to user that the input value has something wrong
+	const errorHandler = () => {
+		console.log("Deu problema");
+		setSteps(null);
+	};
 	return (
 		<div className="min-h-screen bg-gray-50 p-2">
 			<div className=" bg-gray-200 rounded-md p-3 lg:max-w-screen-md lg:mx-auto drop-shadow-md">
@@ -195,20 +204,49 @@ function App() {
 						/>
 					</label>
 				</div>
-				<label
-					htmlFor="fileInput"
-					className="bg-blue-400 p-2.5 rounded-md text-white font-semibold inline-block"
-				>
-					Choose the image to start
-				</label>
-				<input
-					type="file"
-					name="fileInput"
-					id="fileInput"
-					onChange={handleFileInputChange}
-					className="hidden"
-				/>
+				<div className="flex flex-col items-stretch gap-2.5 md:flex-row">
+					<label
+						htmlFor="fileInput"
+						className="bg-blue-400 p-2.5 rounded-md text-white font-semibold inline-block text-center"
+					>
+						Choose the image to start
+					</label>
+					<input
+						type="file"
+						name="fileInput"
+						id="fileInput"
+						onChange={handleFileInputChange}
+						className="hidden"
+					/>
+					<button
+						className="bg-blue-400 p-2.5 rounded-md text-white font-semibold inline-block"
+						onClick={() => {
+							setStepsCopyArea(true);
+							setImageFile(null);
+						}}
+					>
+						Use generated steps
+					</button>
+				</div>
 			</div>
+			{stepsCopyArea && !imageFile && (
+				<div className="bg-white p-3 border border-gray-400 rounded-md my-6 lg:max-w-screen-md lg:mx-auto">
+					<p>Insert your already generataed step by step</p>
+					<textarea
+						className="w-full p-2.5 my-2.5 border-solid border border-gray-400 rounded-md shadow-md"
+						onChange={handleCopyAreaValue}
+					></textarea>
+					<button
+						className="bg-blue-400 my-2.5 p-2.5 rounded-md text-white font-semibold inline-block w-full"
+						onClick={() => {
+							setSteps(copyAreaValue);
+							setStepsCopyArea(false)
+						}}
+					>
+						Generate string art
+					</button>
+				</div>
+			)}
 			<canvas
 				id="imageCanvas"
 				className={`bg-gray-50 w-4/5 max-w-2xl aspect-square m-auto my-3 ${
@@ -218,6 +256,7 @@ function App() {
 				width={SCREEN_SIZE}
 				height={SCREEN_SIZE}
 			></canvas>
+
 			{imageFile && (
 				<div className="bg-gray-50 m-2 p-3 lg:max-w-screen-md lg:mx-auto flex flex-col items-stretch">
 					<div className="flex justify-evenly">
@@ -263,18 +302,30 @@ function App() {
 					>
 						Generate string art
 					</button>
-					{steps && (
-						<div className="border-solid border-2 border-indigo-60 p-1 rounded-md bg-white">
-							<ResultCanvas
-								steps={steps}
-								points={numberOfPoints}
-							></ResultCanvas>
-							<p>Step by step process:</p>
-							<textarea value={steps} className="w-full border-solid border-2 border-indigo-60"></textarea>
-							<p>By copying these numbers you can also save it for later so you won't have to generete them again</p>
-							<p>To build your string art you just have to follow the order of the steps above so for exemple in the part "{`${steps[0]}, ${steps[1]}, ${steps[2]}`}" you start from nail/pin {steps[0]}, pass a line from {steps[0]} to steps {steps[1]} and then a line from pin {steps[1]} to pin {steps[2]} and so on</p>
-						</div>
-					)}
+				</div>
+			)}
+			{steps && (
+				<div className="border-solid border-2 border-indigo-60 p-1 rounded-md bg-white shadow-md lg:max-w-screen-md lg:mx-auto">
+					<ResultCanvas
+						steps={steps}
+						points={numberOfPoints}
+						errorHandler={errorHandler}
+					></ResultCanvas>
+					<p>Step by step process:</p>
+					<p className="w-full bg-gray-300 p-1 rounded-md h-40 overflow-scroll">
+						{steps.join(", ")}
+					</p>
+					<p>
+						By copying these numbers you can also save it for later so you won't
+						have to generete them again
+					</p>
+					<p>
+						To build your string art you just have to follow the order of the
+						steps above so for exemple in the part "
+						{`${steps[0]}, ${steps[1]}, ${steps[2]}`}" you start from nail/pin{" "}
+						{steps[0]}, pass a line from {steps[0]} to steps {steps[1]} and then
+						a line from pin {steps[1]} to pin {steps[2]} and so on
+					</p>
 				</div>
 			)}
 		</div>
