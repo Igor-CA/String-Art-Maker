@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import generateStringArt from "./algorithm";
-import ResultCanvas from "./resultCanvas";
+import PasteArea from "./components/PasteArea";
+import FinalResultComponent from "./components/FinalResultsComponent";
+import renderImage from "./imageManipulation";
+import ImageSelection from "./components/ImageSelection";
 
 const LINE_TRANSPARENCY = 0.25;
 const SCREEN_SIZE = 1000;
@@ -8,9 +11,7 @@ const SCREEN_SIZE = 1000;
 function App() {
 	const canvasRef = useRef(null);
 	const contextRef = useRef(null);
-	const [rangeValues, setRangeValues] = useState({ zoom: 1, x: 50, y: 50 });
-	const [stepsCopyArea, setStepsCopyArea] = useState(false);
-	const [copyAreaValue, setCopyAreaValue] = useState(null);
+	const [stepsPasteArea, setStepsPasteArea] = useState(false);
 	const [imageFile, setImageFile] = useState(null);
 	const [errorMessage, setErrorMessage] = useState(null);
 	const [numberOfPoints, setNumberOfPoints] = useState(250);
@@ -33,96 +34,15 @@ function App() {
 		reader.onload = (e) => {
 			const imageFile = new Image();
 			imageFile.onload = function () {
+				const defaultSelectionValues = { zoom: 1, x: 50, y: 50 }
 				setImageFile(imageFile);
-				renderImage(imageFile);
+				renderImage(imageFile, canvasRef, contextRef, defaultSelectionValues);
 			};
 			imageFile.src = e.target.result;
 		};
 		reader.readAsDataURL(file);
 	};
 
-	const handleRadioInputChange = (e) => {
-		const { name, value } = e.target;
-		const invertedValue = 1 - parseFloat(value);
-		setRangeValues((previos) => {
-			return { ...previos, [name]: name === "zoom" ? invertedValue : value };
-		});
-		renderImage(imageFile);
-	};
-	const renderImage = (img) => {
-		const croppedImage = cropImage(img);
-		const croppedImageData = croppedImage.data.slice();
-		const grayScaleImage = applyGrayScaleFilter(croppedImageData);
-		const circularImage = circularCut(grayScaleImage);
-
-		const scannedImageCopy = new ImageData(
-			croppedImage.width,
-			croppedImage.height
-		);
-
-		scannedImageCopy.data.set(circularImage);
-		contextRef.current.putImageData(scannedImageCopy, 0, 0);
-	};
-	const cropImage = (image) => {
-		const canvas = canvasRef.current;
-
-		const { zoom, x, y } = rangeValues;
-		const imageSize = Math.min(image.width, image.height) * zoom;
-
-		const selectedX = (x * (image.width - imageSize)) / 100;
-		const selectedY = (y * (image.height - imageSize)) / 100;
-		const selectedWidth = imageSize;
-		const selectedHeight = imageSize;
-
-		const croppedCanvas = document.createElement("canvas");
-		croppedCanvas.width = canvas.width;
-		croppedCanvas.height = canvas.height;
-		const croppedContext = croppedCanvas.getContext("2d");
-		croppedContext.drawImage(
-			image,
-			selectedX,
-			selectedY,
-			selectedWidth,
-			selectedHeight,
-			0,
-			0,
-			canvas.width,
-			canvas.height
-		);
-
-		return croppedContext.getImageData(0, 0, canvas.width, canvas.height);
-	};
-	const applyGrayScaleFilter = (imageData) => {
-		for (let i = 0; i < imageData.length; i += 4) {
-			const grayScale =
-				imageData[i] * 0.299 + //Red brightness
-				imageData[i + 1] * 0.587 + //Green brightness
-				imageData[i + 2] * 0.114; //Blue brightness
-
-			imageData[i] = grayScale;
-			imageData[i + 1] = grayScale;
-			imageData[i + 2] = grayScale;
-		}
-		return imageData;
-	};
-	const circularCut = (imageData) => {
-		const width = canvasRef.current.width;
-		const height = canvasRef.current.height;
-		const centerX = Math.floor(width / 2);
-		const centerY = Math.floor(height / 2);
-		const radius = width / 2;
-		for (let i = 0; i < imageData.length; i += 4) {
-			const pixelNumber = i / 4;
-			const x = pixelNumber % width;
-			const y = Math.floor(pixelNumber / height);
-			const distanceCenter = Math.sqrt((centerX - x) ** 2 + (centerY - y) ** 2);
-			if (distanceCenter > radius) {
-				const alpha = 1 - Math.min(1, distanceCenter - radius);
-				imageData[i + 3] = Math.round(alpha * imageData[i + 3]);
-			}
-		}
-		return imageData;
-	};
 
 	const generateArt = async () => {
 		const imageData = contextRef.current.getImageData(
@@ -150,16 +70,12 @@ function App() {
 	const handleThreadsChange = (e) => {
 		setNumberOfThreads(e.target.value);
 	};
-	const handleCopyAreaValue = (e) => {
-		const values = e.target.value.split(",").map((value) => value.trim());
-		setCopyAreaValue(values);
-	};
 	const errorHandler = () => {
 		setErrorMessage(
 			"The step by step you put in has some problem. Please try again"
 		);
 		setTimeout(() => {
-			setErrorMessage(null)
+			setErrorMessage(null);
 		}, 4000);
 		setSteps(null);
 	};
@@ -226,7 +142,7 @@ function App() {
 					<button
 						className="bg-blue-400 p-2.5 rounded-md text-white font-semibold inline-block"
 						onClick={() => {
-							setStepsCopyArea(true);
+							setStepsPasteArea(true);
 							setImageFile(null);
 						}}
 					>
@@ -234,24 +150,13 @@ function App() {
 					</button>
 				</div>
 			</div>
-			{stepsCopyArea && !imageFile && (
-				<div className="bg-white p-3 border border-gray-400 rounded-md my-6 lg:max-w-screen-md lg:mx-auto">
-					<p>Insert your already generataed step by step</p>
-					<textarea
-						className="w-full p-2.5 my-2.5 border-solid border border-gray-400 rounded-md shadow-md"
-						onChange={handleCopyAreaValue}
-					></textarea>
-					<button
-						className="bg-blue-400 my-2.5 p-2.5 rounded-md text-white font-semibold inline-block w-full"
-						onClick={() => {
-							setSteps(copyAreaValue);
-							setStepsCopyArea(false);
-						}}
-					>
-						Generate string art
-					</button>
-				</div>
+			{stepsPasteArea && !imageFile && (
+				<PasteArea
+					setSteps={setSteps}
+					setStepsPasteArea={setStepsPasteArea}
+				></PasteArea>
 			)}
+			
 			<canvas
 				id="imageCanvas"
 				className={`bg-gray-50 w-4/5 max-w-2xl aspect-square m-auto my-3 ${
@@ -261,77 +166,19 @@ function App() {
 				width={SCREEN_SIZE}
 				height={SCREEN_SIZE}
 			></canvas>
+			
 			{imageFile && (
-				<div className="bg-gray-50 m-2 p-3 lg:max-w-screen-md lg:mx-auto flex flex-col items-stretch">
-					<div className="flex justify-evenly">
-						<label htmlFor="zoom">
-							Zoom
-							<input
-								type="range"
-								min={0}
-								max={0.9}
-								step={0.01}
-								defaultValue={0}
-								name="zoom"
-								onChange={handleRadioInputChange}
-							/>
-						</label>
-						<label htmlFor="x">
-							X
-							<input
-								type="range"
-								min={0}
-								max={100}
-								defaultValue={50}
-								name="x"
-								onChange={handleRadioInputChange}
-							/>
-						</label>
-						<label htmlFor="y">
-							Y
-							<input
-								type="range"
-								min={0}
-								max={100}
-								defaultValue={50}
-								name="y"
-								onChange={handleRadioInputChange}
-							/>
-						</label>
-					</div>
-
-					<button
-						className="bg-blue-400 my-2.5 p-2.5 rounded-md text-white font-semibold inline-block"
-						onClick={generateArt}
-					>
-						Generate string art
-					</button>
-				</div>
+				<ImageSelection image={imageFile} context={contextRef} canvas={canvasRef} generateFunction={generateArt}></ImageSelection>
 			)}
+			
 			{steps && (
-				<div className="border-solid border-2 border-indigo-60 p-1 rounded-md bg-white shadow-md lg:max-w-screen-md lg:mx-auto">
-					<ResultCanvas
-						steps={steps}
-						points={numberOfPoints}
-						errorHandler={errorHandler}
-					></ResultCanvas>
-					<p>Step by step process:</p>
-					<p className="w-full bg-gray-300 p-1 rounded-md h-40 overflow-scroll">
-						{steps.join(", ")}
-					</p>
-					<p>
-						By copying these numbers you can also save it for later so you won't
-						have to generete them again
-					</p>
-					<p>
-						To build your string art you just have to follow the order of the
-						steps above so for exemple in the part "
-						{`${steps[0]}, ${steps[1]}, ${steps[2]}`}" you start from nail/pin{" "}
-						{steps[0]}, pass a line from {steps[0]} to steps {steps[1]} and then
-						a line from pin {steps[1]} to pin {steps[2]} and so on
-					</p>
-				</div>
+				<FinalResultComponent
+					steps={steps}
+					numberOfPoints={numberOfPoints}
+					errorHandler={errorHandler}
+				></FinalResultComponent>
 			)}
+			
 			{errorMessage && (
 				<div className="bg-red-100 border border-red-200 rounded-md w-4/5 max-w-md p-4 shadow-lg z-10 -translate-x-1/2 fixed top-5 left-1/2 text-red-500 font-semibold text-center">
 					<p>{errorMessage}</p>
