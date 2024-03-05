@@ -12,6 +12,7 @@ function App() {
 	const [stepsCopyArea, setStepsCopyArea] = useState(false);
 	const [copyAreaValue, setCopyAreaValue] = useState(null);
 	const [imageFile, setImageFile] = useState(null);
+	const [errorMessage, setErrorMessage] = useState(null);
 	const [numberOfPoints, setNumberOfPoints] = useState(250);
 	const [numberOfThreads, setNumberOfThreads] = useState(4000);
 	const [steps, setSteps] = useState();
@@ -153,9 +154,13 @@ function App() {
 		const values = e.target.value.split(",").map((value) => value.trim());
 		setCopyAreaValue(values);
 	};
-	//TODO make new error handler -> show to user that the input value has something wrong
 	const errorHandler = () => {
-		console.log("Deu problema");
+		setErrorMessage(
+			"The step by step you put in has some problem. Please try again"
+		);
+		setTimeout(() => {
+			setErrorMessage(null)
+		}, 4000);
 		setSteps(null);
 	};
 	return (
@@ -240,7 +245,7 @@ function App() {
 						className="bg-blue-400 my-2.5 p-2.5 rounded-md text-white font-semibold inline-block w-full"
 						onClick={() => {
 							setSteps(copyAreaValue);
-							setStepsCopyArea(false)
+							setStepsCopyArea(false);
 						}}
 					>
 						Generate string art
@@ -256,7 +261,6 @@ function App() {
 				width={SCREEN_SIZE}
 				height={SCREEN_SIZE}
 			></canvas>
-
 			{imageFile && (
 				<div className="bg-gray-50 m-2 p-3 lg:max-w-screen-md lg:mx-auto flex flex-col items-stretch">
 					<div className="flex justify-evenly">
@@ -326,6 +330,11 @@ function App() {
 						{steps[0]}, pass a line from {steps[0]} to steps {steps[1]} and then
 						a line from pin {steps[1]} to pin {steps[2]} and so on
 					</p>
+				</div>
+			)}
+			{errorMessage && (
+				<div className="bg-red-100 border border-red-200 rounded-md w-4/5 max-w-md p-4 shadow-lg z-10 -translate-x-1/2 fixed top-5 left-1/2 text-red-500 font-semibold text-center">
+					<p>{errorMessage}</p>
 				</div>
 			)}
 		</div>
