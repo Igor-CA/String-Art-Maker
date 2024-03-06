@@ -1,8 +1,16 @@
 import { useState } from "react";
 import renderImage from "../imageManipulation";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faSpinner } from "@fortawesome/free-solid-svg-icons";
 
-export default function ImageSelection({image, canvas, context, generateFunction}) {
+export default function ImageSelection({
+	image,
+	canvas,
+	context,
+	generateFunction,
+}) {
 	const [rangeValues, setRangeValues] = useState({ zoom: 1, x: 50, y: 50 });
+	const [loading, setLoading] = useState(false);
 
 	const handleRadioInputChange = (e) => {
 		const { name, value } = e.target;
@@ -11,6 +19,13 @@ export default function ImageSelection({image, canvas, context, generateFunction
 			return { ...previos, [name]: name === "zoom" ? invertedValue : value };
 		});
 		renderImage(image, canvas, context, rangeValues);
+	};
+
+	const handleOnClickEvent = async() => {
+		setLoading(true);
+		await new Promise(resolve => setTimeout(resolve, 100));
+		await generateFunction()
+		setLoading(false);
 	};
 
 	return (
@@ -54,9 +69,13 @@ export default function ImageSelection({image, canvas, context, generateFunction
 
 			<button
 				className="bg-blue-400 my-2.5 p-2.5 rounded-md text-white font-semibold inline-block"
-				onClick={generateFunction}
+				onClick={handleOnClickEvent}
+				disabled={loading}
 			>
-				Generate string art
+				{loading && (
+					<FontAwesomeIcon className="animate-spin h-5 w-5 mr-3" icon={faSpinner} />
+				)}
+				{loading ? "Generating art" : "Generate string art"}
 			</button>
 		</div>
 	);
