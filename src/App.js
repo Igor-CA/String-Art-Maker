@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import generateStringArt from "./algorithm";
 import PasteArea from "./components/PasteArea";
 import FinalResultComponent from "./components/FinalResultsComponent";
 import renderImage from "./imageManipulation";
@@ -7,6 +6,8 @@ import ImageSelection from "./components/ImageSelection";
 
 const LINE_TRANSPARENCY = 0.25;
 const SCREEN_SIZE = 1000;
+
+const worker = new Worker(new URL("./worker.js", import.meta.url));
 
 function App() {
 	const canvasRef = useRef(null);
@@ -17,6 +18,8 @@ function App() {
 	const [numberOfPoints, setNumberOfPoints] = useState(250);
 	const [numberOfThreads, setNumberOfThreads] = useState(4000);
 	const [steps, setSteps] = useState();
+	const [loading, setLoading] = useState(false);
+
 	useEffect(() => {
 		const canvas = canvasRef.current;
 		const context = canvas.getContext("2d");
@@ -34,7 +37,7 @@ function App() {
 		reader.onload = (e) => {
 			const imageFile = new Image();
 			imageFile.onload = function () {
-				const defaultSelectionValues = { zoom: 1, x: 50, y: 50 }
+				const defaultSelectionValues = { zoom: 1, x: 50, y: 50 };
 				setImageFile(imageFile);
 				renderImage(imageFile, canvasRef, contextRef, defaultSelectionValues);
 			};
@@ -43,27 +46,33 @@ function App() {
 		reader.readAsDataURL(file);
 	};
 
-
 	const generateArt = async () => {
-		const imageData = contextRef.current.getImageData(
+		const image = contextRef.current.getImageData(
 			0,
 			0,
 			canvasRef.current.width,
 			canvasRef.current.height
 		);
-		const initialTime = new Date();
-		const generatedSteps = await generateStringArt(
-			imageData.data,
+
+		const imageData = image.data;
+		const screenSize = SCREEN_SIZE;
+		const lineTranparency = LINE_TRANSPARENCY;
+
+		setLoading(true)
+		worker.postMessage({
+			imageData,
 			numberOfThreads,
 			numberOfPoints,
-			SCREEN_SIZE,
-			LINE_TRANSPARENCY
-		);
-		const finalTime = new Date();
-		console.log(`Total time: ${finalTime - initialTime}`);
-		console.log(generatedSteps);
-		setSteps(generatedSteps);
+			screenSize,
+			lineTranparency,
+		});
+		worker.onmessage = (e) => {
+			setSteps(e.data);
+			setLoading(false)
+		};
+		return;
 	};
+
 	const handlePointsChange = (e) => {
 		setNumberOfPoints(e.target.value);
 	};
@@ -156,7 +165,7 @@ function App() {
 					setStepsPasteArea={setStepsPasteArea}
 				></PasteArea>
 			)}
-			
+
 			<canvas
 				id="imageCanvas"
 				className={`bg-gray-50 w-4/5 max-w-2xl aspect-square m-auto my-3 ${
@@ -166,11 +175,17 @@ function App() {
 				width={SCREEN_SIZE}
 				height={SCREEN_SIZE}
 			></canvas>
-			
+
 			{imageFile && (
-				<ImageSelection image={imageFile} context={contextRef} canvas={canvasRef} generateFunction={generateArt}></ImageSelection>
+				<ImageSelection
+					image={imageFile}
+					context={contextRef}
+					canvas={canvasRef}
+					generateFunction={generateArt}
+					loading={loading}
+				></ImageSelection>
 			)}
-			
+
 			{steps && (
 				<FinalResultComponent
 					steps={steps}
@@ -178,7 +193,6 @@ function App() {
 					errorHandler={errorHandler}
 				></FinalResultComponent>
 			)}
-			
 			{errorMessage && (
 				<div className="bg-red-100 border border-red-200 rounded-md w-4/5 max-w-md p-4 shadow-lg z-10 -translate-x-1/2 fixed top-5 left-1/2 text-red-500 font-semibold text-center">
 					<p>{errorMessage}</p>
