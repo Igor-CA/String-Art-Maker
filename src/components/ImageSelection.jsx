@@ -8,9 +8,9 @@ export default function ImageSelection({
 	canvas,
 	context,
 	generateFunction,
+	loading
 }) {
 	const [rangeValues, setRangeValues] = useState({ zoom: 1, x: 50, y: 50 });
-	const [loading, setLoading] = useState(false);
 
 	const handleRadioInputChange = (e) => {
 		const { name, value } = e.target;
@@ -21,12 +21,6 @@ export default function ImageSelection({
 		renderImage(image, canvas, context, rangeValues);
 	};
 
-	const handleOnClickEvent = async() => {
-		setLoading(true);
-		await new Promise(resolve => setTimeout(resolve, 100));
-		await generateFunction()
-		setLoading(false);
-	};
 
 	return (
 		<div className="bg-gray-50 m-2 p-3 lg:max-w-screen-md lg:mx-auto flex flex-col items-stretch">
@@ -69,7 +63,7 @@ export default function ImageSelection({
 
 			<button
 				className="bg-blue-400 my-2.5 p-2.5 rounded-md text-white font-semibold inline-block"
-				onClick={handleOnClickEvent}
+				onClick={generateFunction}
 				disabled={loading}
 			>
 				{loading && (
