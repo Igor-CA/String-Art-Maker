@@ -58,7 +58,7 @@ function App() {
 		const screenSize = SCREEN_SIZE;
 		const lineTranparency = LINE_TRANSPARENCY;
 
-		setLoading(true)
+		setLoading(true);
 		worker.postMessage({
 			imageData,
 			numberOfThreads,
@@ -68,7 +68,7 @@ function App() {
 		});
 		worker.onmessage = (e) => {
 			setSteps(e.data);
-			setLoading(false)
+			setLoading(false);
 		};
 		return;
 	};
@@ -98,9 +98,10 @@ function App() {
 					Select a image to create a string art. <br></br> Select the area of
 					the image you want to use and then click "Generate string art"
 					<br></br> Wait for generate to complete loading. <br></br>
+					If you already have a step by step process you can click in "Use
+					generated steps" and copy your steps to see the results<br></br>
 					<strong>Note:</strong> For best results use close up high contrast
-					pictures. <br></br> If you already have a step by step process you can
-					click in "Use generated steps" and copy your steps to see the results
+					pictures. <br></br>
 				</p>
 
 				<h2 className="font-bold mt-3">Variables that affects the result</h2>

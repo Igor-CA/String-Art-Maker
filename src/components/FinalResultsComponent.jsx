@@ -20,7 +20,7 @@ export default function FinalResultComponent({steps, numberOfPoints, errorHandle
 				To build your string art you just have to follow the order of the steps
 				above so for exemple in the part "
 				{`${steps[0]}, ${steps[1]}, ${steps[2]}`}" you start from nail/pin{" "}
-				{steps[0]}, pass a line from {steps[0]} to steps {steps[1]} and then a
+				{steps[0]}, pass a line from {steps[0]} to nail/pin {steps[1]} and then a
 				line from pin {steps[1]} to pin {steps[2]} and so on
 			</p>
 		</div>
