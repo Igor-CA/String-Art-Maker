@@ -88,7 +88,7 @@ export function geneatePinCoodinates(numberOfPoints, canvasSize) {
 	return coords;
 }
 
-async function preCalculateLines(numberOfNails, canvasSize) {
+function preCalculateLines(numberOfNails, canvasSize) {
 	const lines = {};
 	const nailsCoords = geneatePinCoodinates(numberOfNails, canvasSize);
 	for (let nailOne = 0; nailOne < numberOfNails; nailOne++) {
@@ -101,11 +101,6 @@ async function preCalculateLines(numberOfNails, canvasSize) {
 
 			const key = `${nailOne}-${nailTwo}`;
 			lines[key] = line;
-			//Work around so UI can get updated so it can run a loading animation
-			if (nailTwo % 100 === 0) {
-				//Adding a timeout here allow the event queue to run an update on UI 
-				await new Promise((resolve) => setTimeout(resolve, 0));
-			}
 		}
 	}
 	return lines;
@@ -145,7 +140,7 @@ function removeLineFromImage(line, image, lineTranparency) {
 	return image;
 }
 
-export default async function generateStringArt(
+export default function generateStringArt(
 	imageData,
 	numberOfThreads,
 	numberOfNails,
@@ -154,7 +149,7 @@ export default async function generateStringArt(
 ) {
 	const reduced = reduceMatrix(imageData);
 	const simplified = simplifyMatrix(reduced, canvasSize, canvasSize);
-	const lines = await preCalculateLines(numberOfNails, canvasSize);
+	const lines = preCalculateLines(numberOfNails, canvasSize);
 	const steps = [0];
 
 	let imageCopy = simplified;
@@ -170,12 +165,6 @@ export default async function generateStringArt(
 		imageCopy = removeLineFromImage(darkestLine, imageCopy, lineTranparency);
 		steps.push(nextNail);
 		nail = nextNail;
-
-		//Work around so UI can get updated so it can run a loading animation
-		if (i % 10 === 0) {
-			//Adding a timeout here allow the event queue to run an update on UI 
-			await new Promise((resolve) => setTimeout(resolve, 0));
-		}
 	}
 
 	return steps;
