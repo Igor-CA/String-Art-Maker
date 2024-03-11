@@ -140,7 +140,7 @@ function removeLineFromImage(line, image, lineTranparency) {
 	return image;
 }
 
-export default async function generateStringArt(
+export default function generateStringArt(
 	imageData,
 	numberOfThreads,
 	numberOfNails,
