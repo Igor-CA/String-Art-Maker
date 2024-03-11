@@ -1,15 +1,30 @@
 import { useEffect, useRef, useState } from "react";
+import PasteArea from "./components/PasteArea";
+import FinalResultComponent from "./components/FinalResultsComponent";
+import renderImage from "./imageManipulation";
+import ImageSelection from "./components/ImageSelection";
+
+const LINE_TRANSPARENCY = 0.25;
+const SCREEN_SIZE = 1000;
+
+const worker = new Worker(new URL("./worker.js", import.meta.url));
 
 function App() {
 	const canvasRef = useRef(null);
 	const contextRef = useRef(null);
-	const [rangeValues, setRangeValues] = useState({ zoom: 1, x: 50, y: 50 });
+	const [stepsPasteArea, setStepsPasteArea] = useState(false);
 	const [imageFile, setImageFile] = useState(null);
+	const [errorMessage, setErrorMessage] = useState(null);
+	const [numberOfPoints, setNumberOfPoints] = useState(250);
+	const [numberOfThreads, setNumberOfThreads] = useState(4000);
+	const [steps, setSteps] = useState();
+	const [loading, setLoading] = useState(false);
+
 	useEffect(() => {
 		const canvas = canvasRef.current;
 		const context = canvas.getContext("2d");
 		contextRef.current = context;
-	});
+	}, []);
 
 	const handleFileInputChange = (event) => {
 		const file = event.target.files[0];
@@ -22,146 +37,167 @@ function App() {
 		reader.onload = (e) => {
 			const imageFile = new Image();
 			imageFile.onload = function () {
+				const defaultSelectionValues = { zoom: 1, x: 50, y: 50 };
 				setImageFile(imageFile);
-				renderImage(imageFile);
+				renderImage(imageFile, canvasRef, contextRef, defaultSelectionValues);
 			};
 			imageFile.src = e.target.result;
 		};
 		reader.readAsDataURL(file);
 	};
 
-	const handleRadioInputChange = (e) => {
-		const { name, value } = e.target;
-		const invertedValue = 1 - parseFloat(value);
-		setRangeValues((previos) => {
-			return { ...previos, [name]: name === "zoom" ? invertedValue : value };
+	const generateArt = async () => {
+		const image = contextRef.current.getImageData(
+			0,
+			0,
+			canvasRef.current.width,
+			canvasRef.current.height
+		);
+
+		const imageData = image.data;
+		const screenSize = SCREEN_SIZE;
+		const lineTranparency = LINE_TRANSPARENCY;
+
+		setLoading(true);
+		worker.postMessage({
+			imageData,
+			numberOfThreads,
+			numberOfPoints,
+			screenSize,
+			lineTranparency,
 		});
-		renderImage(imageFile);
+		worker.onmessage = (e) => {
+			setSteps(e.data);
+			setLoading(false);
+		};
+		return;
 	};
-	const renderImage = (img) => {
-		const croppedImage = cropImage(img);
-		const croppedImageData = croppedImage.data.slice();
-		const grayScaleImage = applyGrayScaleFilter(croppedImageData);
-		const circularImage = circularCut(grayScaleImage);
 
-		const scannedImageCopy = new ImageData(
-			croppedImage.width,
-			croppedImage.height
+	const handlePointsChange = (e) => {
+		setNumberOfPoints(e.target.value);
+	};
+	const handleThreadsChange = (e) => {
+		setNumberOfThreads(e.target.value);
+	};
+	const errorHandler = () => {
+		setErrorMessage(
+			"The step by step you put in has some problem. Please try again"
 		);
-
-		scannedImageCopy.data.set(circularImage);
-		contextRef.current.putImageData(scannedImageCopy, 0, 0);
+		setTimeout(() => {
+			setErrorMessage(null);
+		}, 4000);
+		setSteps(null);
 	};
-	const cropImage = (image) => {
-		const canvas = canvasRef.current;
-		const maxWidth = 672;
-    	const width = Math.min(0.8 * window.innerWidth, maxWidth);
-		canvas.height = canvas.width = width
-
-		const { zoom, x, y } = rangeValues;
-		const imageSize = Math.min(image.width, image.height) * zoom;
-
-		const selectedX = (x * (image.width - imageSize)) / 100;
-		const selectedY = (y * (image.height - imageSize)) / 100;
-		const selectedWidth = imageSize;
-		const selectedHeight = imageSize;
-
-		const croppedCanvas = document.createElement("canvas");
-		croppedCanvas.width = canvas.width;
-		croppedCanvas.height = canvas.height;
-		const croppedContext = croppedCanvas.getContext("2d");
-		croppedContext.drawImage(
-			image,
-			selectedX,
-			selectedY,
-			selectedWidth,
-			selectedHeight,
-			0,
-			0,
-			canvas.width,
-			canvas.height
-		);
-
-		return croppedContext.getImageData(0, 0, canvas.width, canvas.height);
-	};
-	const applyGrayScaleFilter = (imageData) => {
-		for (let i = 0; i < imageData.length; i += 4) {
-			const grayScale =
-				imageData[i] * 0.299 + //Red brightness
-				imageData[i + 1] * 0.587 + //Green brightness
-				imageData[i + 2] * 0.114; //Blue brightness
-
-			imageData[i] = grayScale;
-			imageData[i + 1] = grayScale;
-			imageData[i + 2] = grayScale;
-		}
-		return imageData;
-	};
-	const circularCut = (imageData) => {
-		const width = canvasRef.current.width;
-		const height = canvasRef.current.height;
-		const centerX = Math.floor(width / 2);
-		const centerY = Math.floor(height / 2);
-		const radius = width / 2;
-		for (let i = 0; i < imageData.length; i += 4) {
-			const pixelNumber = i / 4;
-			const x = pixelNumber % width;
-			const y = Math.floor(pixelNumber / height);
-			const distanceCenter = Math.sqrt((centerX - x) ** 2 + (centerY - y) ** 2);
-			if (distanceCenter > radius) {
-				const alpha = 1 - Math.min(1, distanceCenter - radius);
-				imageData[i + 3] = Math.round(alpha * imageData[i + 3]);
-			}
-		}
-		return imageData;
-	};
-
 	return (
-		<div className="bg-gray-100 min-h-screen">
-			<label htmlFor="fileInput" className="bg-blue-400 m-2.5 p-2.5 rounded-md text-white font-semibold inline-block">Escolha o arquivo</label>
-			<input
-				type="file"
-				name="fileInput"
-				id="fileInput"
-				onChange={handleFileInputChange}
-				className="hidden"
-			/>
+		<div className="min-h-screen bg-gray-50 p-2">
+			<div className=" bg-gray-200 rounded-md p-3 lg:max-w-screen-md lg:mx-auto drop-shadow-md">
+				<h1 className="text-lg font-bold drop-shadow-sm">
+					String art generator
+				</h1>
+				<p className="mt-2">
+					Select a image to create a string art. <br></br> Select the area of
+					the image you want to use and then click "Generate string art"
+					<br></br> Wait for generate to complete loading. <br></br>
+					If you already have a step by step process you can click in "Use
+					generated steps" and copy your steps to see the results<br></br>
+					<strong>Note:</strong> For best results use close up high contrast
+					pictures. <br></br>
+				</p>
+
+				<h2 className="font-bold mt-3">Variables that affects the result</h2>
+				<div className="flex flex-col md:flex-row">
+					<label
+						htmlFor="pointsInput"
+						title="The amount of points in the image increases resoltion but it takes more time to compute"
+					>
+						Number of nails:
+						<input
+							type="number"
+							className="m-2.5 p-2.5 rounded-md font-semibold inline-block"
+							id="pointsInput"
+							name="pointsInput"
+							defaultValue={250}
+							onChange={(e) => handlePointsChange(e)}
+						/>
+					</label>
+					<label
+						htmlFor="numberOfThreads"
+						title="Can make images brighter or darker and also give the images more details. With more lines more it takes more time to compute"
+					>
+						Number of lines:
+						<input
+							type="number"
+							id="numberOfThreads"
+							name="numberOfThreads"
+							className="m-2.5 p-2.5 rounded-md font-semibold inline-block"
+							defaultValue={4000}
+							onChange={(e) => handleThreadsChange(e)}
+						/>
+					</label>
+				</div>
+				<div className="flex flex-col items-stretch gap-2.5 md:flex-row">
+					<label
+						htmlFor="fileInput"
+						className="bg-blue-400 p-2.5 rounded-md text-white font-semibold inline-block text-center"
+					>
+						Choose the image to start
+					</label>
+					<input
+						type="file"
+						name="fileInput"
+						id="fileInput"
+						onChange={handleFileInputChange}
+						className="hidden"
+					/>
+					<button
+						className="bg-blue-400 p-2.5 rounded-md text-white font-semibold inline-block"
+						onClick={() => {
+							setStepsPasteArea(true);
+							setImageFile(null);
+						}}
+					>
+						Use generated steps
+					</button>
+				</div>
+			</div>
+			{stepsPasteArea && !imageFile && (
+				<PasteArea
+					setSteps={setSteps}
+					setStepsPasteArea={setStepsPasteArea}
+				></PasteArea>
+			)}
+
 			<canvas
 				id="imageCanvas"
-				className="w-4/5 max-w-2xl aspect-square m-auto my-3"
+				className={`bg-gray-50 w-4/5 max-w-2xl aspect-square m-auto my-3 ${
+					imageFile ? "" : "hidden"
+				}`}
 				ref={canvasRef}
+				width={SCREEN_SIZE}
+				height={SCREEN_SIZE}
 			></canvas>
+
 			{imageFile && (
-				<>
-					<label htmlFor="zoom">Zoom</label>
-					<input
-						type="range"
-						min={0}
-						max={0.9}
-						step={0.01}
-						defaultValue={0}
-						name="zoom"
-						onChange={handleRadioInputChange}
-					/>
-					<label htmlFor="x">X</label>
-					<input
-						type="range"
-						min={0}
-						max={100}
-						defaultValue={50}
-						name="x"
-						onChange={handleRadioInputChange}
-					/>
-					<label htmlFor="y"></label>Y
-					<input
-						type="range"
-						min={0}
-						max={100}
-						defaultValue={50}
-						name="y"
-						onChange={handleRadioInputChange}
-					/>
-				</>
+				<ImageSelection
+					image={imageFile}
+					context={contextRef}
+					canvas={canvasRef}
+					generateFunction={generateArt}
+					loading={loading}
+				></ImageSelection>
+			)}
+
+			{steps && (
+				<FinalResultComponent
+					steps={steps}
+					numberOfPoints={numberOfPoints}
+					errorHandler={errorHandler}
+				></FinalResultComponent>
+			)}
+			{errorMessage && (
+				<div className="bg-red-100 border border-red-200 rounded-md w-4/5 max-w-md p-4 shadow-lg z-10 -translate-x-1/2 fixed top-5 left-1/2 text-red-500 font-semibold text-center">
+					<p>{errorMessage}</p>
+				</div>
 			)}
 		</div>
 	);
